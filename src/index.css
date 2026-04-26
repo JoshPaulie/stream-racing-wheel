@@ -170,6 +170,46 @@ input:checked + .slider:before {
   padding: 0.3rem 0.5rem;
 }
 
+.controller-btn-group {
+  display: flex;
+  gap: 0;
+}
+
+.controller-btn {
+  background: #333;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 1rem;
+  min-height: 2rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.controller-btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.controller-btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.controller-btn:not(:last-child) {
+  border-right: none;
+}
+
+.controller-btn:hover {
+  background: #444;
+}
+
+.controller-btn--active {
+  background: #0078d4;
+  border-color: #0078d4;
+}
+
+.controller-btn--active:hover {
+  background: #006cbd;
+}
+
 .configure-preview {
   width: 100%;
   margin-top: 0.9rem;

@@ -222,17 +222,17 @@ class App extends Component {
 
           <div className="configure-row">
             <label className="configure-label">Controller UI</label>
-            <select
-              name="controllerSelection"
-              value={this.state.selectedController}
-              onChange={(e) => {
-                this.onControllerChange(e);
-              }}
-            >
-              <option value="wheel">Wheel</option>
-              <option value="pedals">Pedals</option>
-              <option value="shifter">Shifter</option>
-            </select>
+            <div className="controller-btn-group">
+              {['wheel', 'pedals', 'shifter'].map((ctrl) => (
+                <button
+                  key={ctrl}
+                  className={`controller-btn${this.state.selectedController === ctrl ? ' controller-btn--active' : ''}`}
+                  onClick={() => this.setState({ selectedController: ctrl })}
+                >
+                  {ctrl.charAt(0).toUpperCase() + ctrl.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <GamepadSelection onChange={(e) => { this.onChange(e); }} />
