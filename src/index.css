@@ -130,12 +130,13 @@ input:checked + .slider:before {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  background: #111;
 }
 
 .configure-panel {
   width: min(980px, 100%);
-  background: rgba(7, 7, 7, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 14px;
   color: #fff;
   padding: 1.25rem;
