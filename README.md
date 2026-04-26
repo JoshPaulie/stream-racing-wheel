@@ -33,7 +33,18 @@ Requirements:
 #### `npm start`
 
 Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+
+
+### Deploying a fork with GitHub Pages
+
+Set your repository subpath before building so asset URLs resolve correctly:
+
+#### `$env:BASE_PATH='/your-repo-name/'; npm run build`
+
+Then deploy:
+
+#### `npm run deploy`
 
 
 
