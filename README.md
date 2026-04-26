@@ -1,31 +1,38 @@
 # Stream a Racing Wheel gamepad overlay on PC
 
 > [!note]
-> This is a fork! For **my** personal use!
->
-> I greatly appreciate the base work of the upstream project. I will tailor my fork to my needs with no upstream merge intentions. Please refrain from PRs or issues. For the sake of open source, this project will remain public.
+> This is a fork for **personal use**. Please refrain from PRs or issues.
 
-Don't have 3 cameras to be showing wheel and pedals? This react application lets you connect to your G920 Racing Wheel and show a visual representation of the controls as an overlay.
+A React app that connects to a racing wheel gamepad (G920 or any compatible controller) and renders a visual overlay for streaming. Add it as a browser source in OBS — no extra cameras needed.
 
-**Customize the wheel, pedals and shifter images to create any appearance you want.**
+## How it works
 
-When the app loads, each browser source instance picks one controller UI:
-- Wheel
-- Pedals
-- Shifter
+The app has two modes that persist across page refreshes:
 
-The selected UI is shown centered on a green screen in overlay mode. Use the Exit to Configure action to return to setup and rebinding.
+**Configure mode** — the default view on first load. Set up your source here:
+- **Controller UI** — choose which controller to display: Wheel, Pedals, or Shifter
+- **Gamepad** — select the connected gamepad to read input from
+- **Max Rotation** — maximum steering wheel rotation in degrees (e.g. 900)
+- **Show Wheel Button Presses** — toggle button press highlights on/off
+- **Rebind Inputs** — map gamepad axes/buttons to the correct controls, invert axes, and replace any image asset with a custom URL
 
+Click the controller preview to enter **overlay mode**.
 
-### Install and use locally
+**Overlay mode** — the controller UI is centered on a green screen, ready to be chroma-keyed in OBS. Click anywhere on the overlay to return to configure mode.
 
-Requirements:
-- Node v18
+All settings (selected controller, rotation, overlay state, bindings, images) are saved to browser `localStorage` and restored automatically on refresh.
 
-#### `npm install`
+## OBS setup
 
-#### `npm start`
+Add one browser source per controller you want to show (e.g. one for wheel, one for pedals). Each source remembers its own settings independently as long as OBS keeps separate storage contexts per source.
 
-Runs the app in the development mode.
+## Install and run locally
 
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+Requires Node v18+.
+
+```bash
+npm install
+npm run dev
+```
+
+Opens at [http://localhost:5173](http://localhost:5173).
