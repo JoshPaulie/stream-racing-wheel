@@ -1,7 +1,9 @@
 # Stream a Racing Wheel gamepad overlay on PC
 
 > [!note]
-> This is a fork for **personal use**. Please refrain from PRs or issues.
+> This is a fork for **personal use**, I have no intention of merging it back to the upstream project. Agentically extended to suit my needs. Please refrain from PRs or issues, but feel free to fork/clone/modify for your own use, as I have.
+>
+> Thank you to joetex for the upstream project which this is build upon
 
 A React app that connects to a racing wheel gamepad (G920 or any compatible controller) and renders a visual overlay for streaming. Add it as a browser source in OBS — no extra cameras needed.
 
