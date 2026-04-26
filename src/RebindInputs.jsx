@@ -2,9 +2,6 @@ import React from "react";
 import flatstore from "flatstore";
 import {
     ProfileLoader,
-    getDefaultProfile,
-    loadDefaultProfile,
-    loadProfile,
 } from "./KeybindProfiles";
 
 function PreviewButtons({}) {
@@ -48,13 +45,10 @@ function PreviewButtons({}) {
                 >
                     <span
                         style={{
-                            backgroundColor: "#222",
                             position: "absolute",
                             top: 0,
                             left: 0,
                             borderRadius: "50%",
-                            width: "2.5rem",
-                            height: "2.5rem",
                             padding: "0.5rem",
                             width: "100%",
                             height: "100%",

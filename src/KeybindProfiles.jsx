@@ -164,10 +164,10 @@ export function ProfileLoader({}) {
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     <button
                         onClick={() => {
-                            if (!window.confirm(`Do you want to DELETE "${profileName}" profile?`))
+                            let curProfileName = getDefaultProfile();
+                            if (!window.confirm(`Do you want to DELETE "${curProfileName}" profile?`))
                                 return;
 
-                            let curProfileName = getDefaultProfile();
                             removeProfile(curProfileName);
                             loadProfile("G920");
                             setIsCreate(false);
@@ -272,7 +272,7 @@ export function ProfileLoader({}) {
                         name="cancel"
                         value="cancel"
                         onClick={() => {
-                            loadProfile(prevProfileName);
+                            loadProfile(prevProfileName || getDefaultProfile());
                             setIsCreate(false);
                         }}
                     >
@@ -286,7 +286,13 @@ export function ProfileLoader({}) {
 
 export function getDefaultProfile() {
     let defaultProfile = localStorage.getItem("defaultProfile");
-    if (defaultProfile) return defaultProfile;
+    if (defaultProfile) {
+        let profiles = getProfiles();
+        if (profiles[defaultProfile]) {
+            return defaultProfile;
+        }
+    }
+
     return "G920";
 }
 export function setDefaultProfile(profileName) {
@@ -312,7 +318,17 @@ export function loadDefaultProfile() {
 
 export function loadProfile(profileName) {
     let profiles = getProfiles();
-    let profile = profiles[profileName];
+    let resolvedProfileName = profileName;
+    let profile = profiles[resolvedProfileName];
+
+    if (!profile) {
+        resolvedProfileName = "G920";
+        profile = profiles[resolvedProfileName] || defaultProfiles.G920;
+    }
+
+    if (!profile) {
+        return;
+    }
 
     let keys = Object.keys(profile);
     for (let key of keys) {
@@ -327,8 +343,8 @@ export function loadProfile(profileName) {
     //   catch (e) { json['invert/' + key] = getSaved('invert/' + key); }
     // }
     flatstore.set("updatedSettings", Date.now());
-    setDefaultProfile(profileName);
-    flatstore.set("defaultProfile", profileName);
+    setDefaultProfile(resolvedProfileName);
+    flatstore.set("defaultProfile", resolvedProfileName);
 }
 
 export function addProfile(profileName, profile) {

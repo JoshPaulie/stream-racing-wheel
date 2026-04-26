@@ -7,7 +7,7 @@ import ShifterBase from './g920/shifterbase';
 
 import RebindInputs from './RebindInputs';
 
-import { defaultProfiles, loadDefaultProfile, loadProfile } from './KeybindProfiles';
+import { loadDefaultProfile } from './KeybindProfiles';
 
 import flatstore from 'flatstore';
 
@@ -23,7 +23,7 @@ loadDefaultProfile();
 flatstore.set('valueWheel', 0);
 flatstore.set('valueBrake', 0);
 flatstore.set('valueGas', 0);
-flatstore.set('valueCluch', 0);
+flatstore.set('valueClutch', 0);
 flatstore.set('valueGearReverse', 0);
 flatstore.set('valueGear1', 0);
 flatstore.set('valueGear2', 0);
@@ -84,6 +84,10 @@ class App extends Component {
 
   onGamepadConnected(e) {
     var gp = navigator.getGamepads()[e.gamepad.index];
+    if (!gp) {
+      return;
+    }
+
     console.log(
       "Gamepad connected at index %d: %s. %d buttons, %d axes.",
       gp.index, gp.id, gp.buttons.length, gp.axes.length
@@ -107,12 +111,35 @@ class App extends Component {
   }
 
   changeGamepad(id) {
-    console.log(id);
-    var gp = navigator.getGamepads()[id];
-    this.gamePadIndex = id;
+    let gamePadId = Number.parseInt(id, 10);
+    if (Number.isNaN(gamePadId)) {
+      return;
+    }
+
+    console.log(gamePadId);
+    var gp = navigator.getGamepads()[gamePadId];
+    if (!gp) {
+      return;
+    }
+
+    if (this.start) {
+      cancelAnimationFrame(this.start);
+      this.start = 0;
+    }
+
+    this.gamePadIndex = gamePadId;
+    flatstore.set('gamePadIndex', gamePadId);
     flatstore.set('gamePad', gp)
-    this.setState({ gamepadIndex: id, gameLoopStarted: true })
+    this.setState({ gamepadIndex: gamePadId, gameLoopStarted: true })
     this.gameLoop();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("gamepadconnected", this.onGamepadConnected);
+    if (this.start) {
+      cancelAnimationFrame(this.start);
+      this.start = 0;
+    }
   }
 
   onWheelRotationChange(e) {
@@ -203,6 +230,10 @@ class App extends Component {
 
     //var gp = this.gamePads[this.gamePadIndex];
     var gp = navigator.getGamepads()[this.gamePadIndex];
+    if (!gp) {
+      this.start = requestAnimationFrame(this.gameLoop);
+      return;
+    }
 
     let actionStates = [];
 
@@ -361,20 +392,8 @@ function GamepadSelection(props) {
 
   let [gamePadIndex] = flatstore.useWatch('gamePadIndex');
 
-  const changeGamepad = (id) => {
-    console.log(id);
-    var gp = navigator.getGamepads()[id];
-
-    flatstore.set('gamePadIndex', id);
-
-    // gamePadIndex = id;
-    flatstore.set('gamePad', gp)
-    // this.setState({ gamepadIndex: id, gameLoopStarted: true })
-    this.gameLoop();
-  }
-
   const onChange = (e) => {
-    changeGamepad(e.target.value);
+    props.onChange(e);
   }
 
   let gamePads = navigator.getGamepads();
@@ -397,7 +416,7 @@ function GamepadSelection(props) {
   return (
     <div>
       <label style={{ color: 'white', display: 'inline-block', paddingRight: '1rem', fontWeight: 'bold' }}>Controller Gamepad</label>
-      <select name="gamepadSelection" defaultValue={gamePadIndex} onChange={(e) => { onChange(e); props.onChange(e); }}>
+      <select name="gamepadSelection" value={gamePadIndex ?? ''} onChange={(e) => { onChange(e); }}>
         {options}
       </select>
     </div>
