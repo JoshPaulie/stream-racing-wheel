@@ -67,25 +67,22 @@ function WheelButtonMask(props) {
     let [imgSrc] = flatstore.useWatch("img" + props.id);
     let [valueButton] = flatstore.useWatch("value" + props.id);
 
-
-    let { id, index, type, pressed, value } = valueButton;
+    let { type, pressed, value } = valueButton || {};
+    let intensity = 0;
+    if (type === 'Button' && pressed) {
+        intensity = Math.min(Math.max(Math.abs(value || 0), 0.35), 1);
+    }
 
 
     return (
-        <img
-            width="500px"
-            height="500px"
-            alt=""
+        <div
+            className="wheel-button-mask"
             style={{
                 ...props.wheelStyle,
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                transition: 'opacity 0.05s ease',
-                opacity: Math.abs(value || 0),
-                zIndex: 99
+                '--wheel-mask-image': `url(${imgSrc})`,
+                opacity: intensity,
+                filter: `brightness(${1 + (intensity * 0.85)})`
             }}
-            src={imgSrc}
         />
     )
 }

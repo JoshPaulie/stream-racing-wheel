@@ -241,3 +241,26 @@ input:checked + .slider:before {
 .single-controller-shifter {
   width: 250px;
 }
+
+.wheel-button-mask {
+  width: 500px;
+  height: 500px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  pointer-events: none;
+  transition:
+    opacity 0.05s ease,
+    filter 0.05s ease;
+  background: rgba(255, 255, 255, 0.96);
+  mix-blend-mode: screen;
+  -webkit-mask-image: var(--wheel-mask-image);
+  mask-image: var(--wheel-mask-image);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
