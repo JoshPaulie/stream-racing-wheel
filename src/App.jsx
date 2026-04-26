@@ -62,11 +62,7 @@ class App extends Component {
     super(props)
 
     this.gamePads = {};
-
     this.start = 0;
-    this.a = 0;
-    this.b = 0;
-
     this.gamePadIndex = -1;
 
     this.state = {
@@ -83,7 +79,7 @@ class App extends Component {
   }
 
   onGamepadConnected(e) {
-    var gp = navigator.getGamepads()[e.gamepad.index];
+    const gp = navigator.getGamepads()[e.gamepad.index];
     if (!gp) {
       return;
     }
@@ -111,13 +107,12 @@ class App extends Component {
   }
 
   changeGamepad(id) {
-    let gamePadId = Number.parseInt(id, 10);
+    const gamePadId = Number.parseInt(id, 10);
     if (Number.isNaN(gamePadId)) {
       return;
     }
 
-    console.log(gamePadId);
-    var gp = navigator.getGamepads()[gamePadId];
+    const gp = navigator.getGamepads()[gamePadId];
     if (!gp) {
       return;
     }
@@ -149,10 +144,6 @@ class App extends Component {
   }
 
   render() {
-    //let gamepads = navigator.getGamepads();
-    //console.log(gamepads)
-
-
     return (
       <div style={{ width: '100%', height: '100%', position: 'absolute', top: '0px', left: '0px', paddingTop: '1rem', paddingLeft: '2rem' }}>
         <h1 style={{ color: 'white' }}>Stream Racing Wheel</h1>
@@ -228,24 +219,17 @@ class App extends Component {
     if (this.gamePadIndex === -1)
       return;
 
-    //var gp = this.gamePads[this.gamePadIndex];
-    var gp = navigator.getGamepads()[this.gamePadIndex];
+    const gp = navigator.getGamepads()[this.gamePadIndex];
     if (!gp) {
       this.start = requestAnimationFrame(this.gameLoop);
       return;
     }
 
     let actionStates = [];
-
-    let buttonStates = [];
     let index = 0;
-
-    let axesStates = [];
     for (let i = 0; i < gp.axes.length; i++) {
-      let axis = gp.axes[i];
-      axesStates.push(axis);
-
-      let axisState = {
+      const axis = gp.axes[i];
+      const axisState = {
         type: 'Axis',
         id: i,
         index: index++,
@@ -258,8 +242,8 @@ class App extends Component {
     }
 
     for (let i = 0; i < gp.buttons.length; i++) {
-      let button = gp.buttons[i];
-      let buttonState = {
+      const button = gp.buttons[i];
+      const buttonState = {
         type: 'Button',
         id: i,
         index: index++,
@@ -267,8 +251,6 @@ class App extends Component {
         touched: button.touched,
         value: button.value
       }
-      buttonStates.push(buttonState);
-
       actionStates.push(buttonState);
     }
 
@@ -381,24 +363,16 @@ class App extends Component {
     //   flatstore.set('valueGear8', buttonStates[buttonGear8].pressed);
 
     flatstore.set('actionStates', actionStates);
-    flatstore.set("buttons", buttonStates);
-    flatstore.set("axes", axesStates);
 
     this.start = requestAnimationFrame(this.gameLoop);
   }
 }
 
 function GamepadSelection(props) {
+  const [gamePadIndex] = flatstore.useWatch('gamePadIndex');
+  const gamePads = navigator.getGamepads();
 
-  let [gamePadIndex] = flatstore.useWatch('gamePadIndex');
-
-  const onChange = (e) => {
-    props.onChange(e);
-  }
-
-  let gamePads = navigator.getGamepads();
-
-  var options = Object.values(gamePads).map(gp => {
+  const options = Object.values(gamePads).map(gp => {
     if (!gp)
       return null;
     // let isSelected = gp.index === this.gamePadIndex;
@@ -416,7 +390,7 @@ function GamepadSelection(props) {
   return (
     <div>
       <label style={{ color: 'white', display: 'inline-block', paddingRight: '1rem', fontWeight: 'bold' }}>Controller Gamepad</label>
-      <select name="gamepadSelection" value={gamePadIndex ?? ''} onChange={(e) => { onChange(e); }}>
+      <select name="gamepadSelection" value={gamePadIndex ?? ''} onChange={props.onChange}>
         {options}
       </select>
     </div>

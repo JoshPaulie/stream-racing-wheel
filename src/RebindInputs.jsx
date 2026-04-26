@@ -4,109 +4,73 @@ import {
     ProfileLoader,
 } from "./KeybindProfiles";
 
-function PreviewButtons({}) {
-    // let [axes] = flatstore.useWatch('axes');
-    // let [buttons] = flatstore.useWatch('buttons');
-    let [actionStates] = flatstore.useWatch("actionStates");
+function PreviewButtons() {
+    const [actionStates] = flatstore.useWatch("actionStates");
 
-    let actionOptions = [];
+    if (!actionStates || actionStates.length === 0) {
+        return null;
+    }
 
-    let axisOptions = [];
-    let buttonOptions = [];
-    let displayAxes = [];
-    let displayButtons = [];
+    const displayAxes = [];
+    const displayButtons = [];
 
-    if (!actionOptions) return <></>;
+    for (const action of actionStates) {
+        const { type, id, pressed, value: rawValue } = action;
 
-    for (let x = 0; x < actionStates.length; x++) {
-        let action = actionStates[x];
-        let { type, id, index, pressed, value } = action;
-
-        if (Math.abs(value) > 0 && value < 1) {
-            value = value.toFixed(2);
-        }
-
-        if (type == "Button") {
+        if (type === "Button") {
             displayButtons.push(
-                <span
-                    key={"displayButtons-" + id}
-                    style={{
-                        display: "inline-block",
-                        position: "relative",
-                        textAlign: "center",
+                <span key={`btn-${id}`} style={{
+                    display: "inline-block",
+                    position: "relative",
+                    textAlign: "center",
+                    borderRadius: "50%",
+                    width: "2.5rem",
+                    height: "2.5rem",
+                    padding: "0.5rem",
+                    margin: "0.2rem",
+                    backgroundColor: "#222",
+                }}>
+                    <span style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
                         borderRadius: "50%",
-                        width: "2.5rem",
-                        height: "2.5rem",
                         padding: "0.5rem",
-                        margin: "0.2rem",
-
-                        backgroundColor: "#222",
-                    }}
-                >
-                    <span
-                        style={{
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            borderRadius: "50%",
-                            padding: "0.5rem",
-                            width: "100%",
-                            height: "100%",
-                            color: !pressed ? "white" : "black",
-                            backgroundColor: !pressed
-                                ? "#222"
-                                : `rgba(255,255,255,${Math.abs(value) * 1})`,
-                        }}
-                    >
+                        width: "100%",
+                        height: "100%",
+                        color: !pressed ? "white" : "black",
+                        backgroundColor: !pressed ? "#222" : `rgba(255,255,255,${Math.abs(rawValue)})`,
+                    }}>
                         {id}
                     </span>
-                    {/* <span style={{ fontSize: '8px', position: 'absolute', bottom: '4px', left: '25%' }}>{value}</span> */}
                 </span>
             );
-            actionOptions.push(
-                <option key={"optionButtons-" + index} value={index}>
-                    Button {id}
-                </option>
-            );
-        } else if (type == "Axis") {
-            let axisValue = Number.parseFloat(value);
-            let pct = ((axisValue + 1.0) / 2.0) * 100;
-            pct = Math.min(pct, 100);
-            axisValue = axisValue.toFixed(3);
+        } else if (type === "Axis") {
+            const axisValue = Number.parseFloat(rawValue);
+            const pct = Math.min(((axisValue + 1.0) / 2.0) * 100, 100);
             displayAxes.push(
-                <span
-                    style={{
-                        padding: "0.5rem",
-                        width: "50px",
-                        height: "2rem",
-                        margin: "0.5rem",
-                        backgroundColor: "black",
-                        color: "white",
-                        position: "relative",
-                        display: "inline-block",
-                        textAlign: "center",
-                    }}
-                    key={"displayAxes-" + id}
-                >
-                    <span
-                        style={{
-                            width: pct + "%",
-                            height: "0.4rem",
-                            position: "absolute",
-                            top: 0,
-                            left: 0,
-                            transition: "width 0.05s linear",
-                            backgroundColor: `rgba(255,255,255,255)`,
-                        }}
-                    ></span>
+                <span key={`axis-${id}`} style={{
+                    padding: "0.5rem",
+                    width: "50px",
+                    height: "2rem",
+                    margin: "0.5rem",
+                    backgroundColor: "black",
+                    color: "white",
+                    position: "relative",
+                    display: "inline-block",
+                    textAlign: "center",
+                }}>
+                    <span style={{
+                        width: `${pct}%`,
+                        height: "0.4rem",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        transition: "width 0.05s linear",
+                        backgroundColor: "rgba(255,255,255,255)",
+                    }} />
                     {id}
                 </span>
-            );
-
-            actionOptions.push(
-                <option key={"optionAxes-" + index} value={index}>
-                    Axis {id}
-                </option>
             );
         }
     }
@@ -126,7 +90,7 @@ function PreviewButtons({}) {
 }
 
 function RebindInputs(props) {
-    let [gamepad] = flatstore.useWatch("gamePad");
+    const [gamepad] = flatstore.useWatch("gamePad");
 
     if (!gamepad) return <></>;
 
@@ -270,22 +234,13 @@ function RebindInputs(props) {
                 <ImageBind title="R3" id="imgWheel_R3" width="500" height="500" />
                 <ImageBind title="L4" id="imgWheel_L4" width="500" height="500" />
                 <ImageBind title="R4" id="imgWheel_R4" width="500" height="500" />
-
-                {/* <button
-                    className="resetButton"
-                    onClick={() => {
-                        loadDefaultProfile();
-                    }}>Reset to Default</button> */}
             </div>
         </div>
     );
 }
-/*
-
-*/
 
 function ImageBind({ id, title, width, height }) {
-    let [value] = flatstore.useChange(id);
+    const [value] = flatstore.useChange(id);
     return (
         <div style={{ display: "block", paddingLeft: "1rem", paddingBottom: "0.5rem" }}>
             <label
@@ -319,18 +274,10 @@ function ImageBind({ id, title, width, height }) {
     );
 }
 
-function InputBind({ invertId, id, title, allowInvert, options }) {
-    let actionStates = flatstore.get("actionStates");
-
-    invertId = invertId || "";
-    let [defaultProfile] = flatstore.useWatch("defaultProfile");
-    let [defaultValue] = flatstore.useChange(id);
-    let [defaultChecked] = flatstore.useWatch("invert/" + id);
-    // let defaultValue = localStorage.getItem(id) || flatstore.get(id);
-    // let defaultChecked = localStorage.getItem('invert/' + id) || flatstore.get('invert/' + id);
-
-    // defaultValue = Number.parseInt(defaultValue);
-    defaultChecked = defaultChecked == "false" || !defaultChecked ? false : true;
+function InputBind({ id, title, allowInvert }) {
+    const actionStates = flatstore.get("actionStates");
+    const [defaultValue] = flatstore.useChange(id);
+    const [defaultChecked] = flatstore.useWatch("invert/" + id);
 
     return (
         <div style={{ display: "inline-block", paddingLeft: "1rem" }}>
@@ -354,11 +301,9 @@ function InputBind({ invertId, id, title, allowInvert, options }) {
                     borderColor: "rgb(34, 34, 34)",
                 }}
                 name={id}
-                // defaultValue={defaultValue}
                 value={defaultValue}
                 onChange={(e) => {
                     flatstore.set(id, Number.parseInt(e.target.value));
-                    // localStorage.setItem(id, e.target.value);
                     flatstore.set("updatedSettings", Date.now());
                 }}
             >
@@ -374,15 +319,13 @@ function InputBind({ invertId, id, title, allowInvert, options }) {
                     <span style={{ color: "white", fontSize: "0.65rem" }}>Invert?</span>
                     <label className="switch">
                         <input
-                            id={"checkbox-" + id}
-                            key={"checkbox-" + id}
-                            name={"checkbox-" + id}
+                            id={`checkbox-${id}`}
+                            key={`checkbox-${id}`}
+                            name={`checkbox-${id}`}
                             type="checkbox"
-                            checked={defaultChecked}
+                            checked={defaultChecked === "false" || !defaultChecked ? false : true}
                             onChange={(e) => {
                                 flatstore.set("invert/" + id, e.target.checked);
-                                // localStorage.setItem('invert/' + id, e.target.checked);
-
                                 flatstore.set("updatedSettings", Date.now());
                             }}
                         />

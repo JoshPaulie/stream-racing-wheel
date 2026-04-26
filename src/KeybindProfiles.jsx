@@ -88,27 +88,21 @@ export function getCurrentProfile() {
 }
 
 export function ProfileLoader({}) {
-    let [defaultProfile] = flatstore.useChange("defaultProfile");
-    // let defaultProfile = getDefaultProfile();
-    let profiles = getProfiles();
-    let profileNames = Object.keys(profiles);
+    const [defaultProfile] = flatstore.useChange("defaultProfile");
+    const profiles = getProfiles();
+    const profileNames = Object.keys(profiles);
 
-    let [isCreate, setIsCreate] = useState(false);
-    let [profileName, setProfileName] = useState("");
-    let [profileJson, setProfileJson] = useState("");
-    let [prevProfileName, setPrevProfileName] = useState("");
+    const [isCreate, setIsCreate] = useState(false);
+    const [profileName, setProfileName] = useState("");
+    const [profileJson, setProfileJson] = useState("");
+    const [prevProfileName, setPrevProfileName] = useState("");
 
-    let [updatedSettings] = flatstore.useChange("updatedSettings");
+    const [updatedSettings] = flatstore.useChange("updatedSettings");
 
     useEffect(() => {
-        let currentProfile = getCurrentProfile();
+        const currentProfile = getCurrentProfile();
         setProfileJson(JSON.stringify(currentProfile, null, 2));
     }, [updatedSettings]);
-
-    useEffect(() => {
-        let currentProfile = getCurrentProfile();
-        setProfileJson(JSON.stringify(currentProfile, null, 2));
-    }, []);
 
     return (
         <div>
@@ -123,14 +117,14 @@ export function ProfileLoader({}) {
                 id="profileLoader"
                 value={isCreate ? "*" : defaultProfile}
                 onChange={(e) => {
-                    let profileName = e.target.value;
-                    if (profileName == "*") {
-                        let curProfileName = getDefaultProfile();
-                        if (curProfileName != "*") {
+                    const profileName = e.target.value;
+                    if (profileName === "*") {
+                        const curProfileName = getDefaultProfile();
+                        if (curProfileName !== "*") {
                             setPrevProfileName(curProfileName);
                         }
 
-                        let currentProfile = getCurrentProfile();
+                        const currentProfile = getCurrentProfile();
                         setProfileJson(JSON.stringify(currentProfile, null, 2));
                         setIsCreate(true);
                         return;
@@ -152,8 +146,8 @@ export function ProfileLoader({}) {
                 <span style={{ display: "inline-block", paddingLeft: "1rem" }}>
                     <button
                         onClick={() => {
-                            let json = getCurrentProfile();
-                            let curProfileName = getDefaultProfile();
+                            const json = getCurrentProfile();
+                            const curProfileName = getDefaultProfile();
                             addProfile(curProfileName, json);
                             loadProfile(curProfileName);
                             setIsCreate(false);
@@ -164,7 +158,7 @@ export function ProfileLoader({}) {
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     <button
                         onClick={() => {
-                            let curProfileName = getDefaultProfile();
+                            const curProfileName = getDefaultProfile();
                             if (!window.confirm(`Do you want to DELETE "${curProfileName}" profile?`))
                                 return;
 
@@ -237,7 +231,7 @@ export function ProfileLoader({}) {
                         value="create"
                         onClick={() => {
                             try {
-                                let json = JSON.parse(profileJson);
+                                const json = JSON.parse(profileJson);
                                 if (profileName.length < 3) {
                                     alert("Profile name must be more than 2 characters.");
                                     return;
@@ -259,9 +253,9 @@ export function ProfileLoader({}) {
                         name="reset"
                         value="reset"
                         onClick={() => {
-                            let defaultProfile = getDefaultProfile();
+                            const defaultProfile = getDefaultProfile();
                             loadProfile(defaultProfile);
-                            let currentProfile = getCurrentProfile();
+                            const currentProfile = getCurrentProfile();
                             setProfileJson(JSON.stringify(currentProfile, null, 2));
                         }}
                     >
@@ -317,7 +311,7 @@ export function loadDefaultProfile() {
 }
 
 export function loadProfile(profileName) {
-    let profiles = getProfiles();
+    const profiles = getProfiles();
     let resolvedProfileName = profileName;
     let profile = profiles[resolvedProfileName];
 
@@ -330,18 +324,11 @@ export function loadProfile(profileName) {
         return;
     }
 
-    let keys = Object.keys(profile);
-    for (let key of keys) {
+    const keys = Object.keys(profile);
+    for (const key of keys) {
         loadSaved(key, profile[key]);
-
         loadSaved("invert/" + key, profile["invert/" + key]);
     }
-
-    // let inverted = getSaved('invert/' + key);
-    // if (typeof inverted !== 'undefined' && inverted != null) {
-    //   try { json['invert/' + key] = JSON.parse(getSaved('invert/' + key)); }
-    //   catch (e) { json['invert/' + key] = getSaved('invert/' + key); }
-    // }
     flatstore.set("updatedSettings", Date.now());
     setDefaultProfile(resolvedProfileName);
     flatstore.set("defaultProfile", resolvedProfileName);
@@ -359,7 +346,6 @@ export function addProfile(profileName, profile) {
     if (profileName in profiles) {
         console.warn(`Profile "${profileName}" already exists.`);
         if (!window.confirm(`Do you want to overwrite "${profileName}" profile?`)) return;
-        // return;
     }
 
     profiles[profileName] = profile;
@@ -368,8 +354,7 @@ export function addProfile(profileName, profile) {
 }
 
 export function removeProfile(profileName) {
-    //cannot delete G920
-    if (profileName == "G920") {
+    if (profileName === "G920") {
         return false;
     }
 
@@ -382,21 +367,9 @@ export function removeProfile(profileName) {
 }
 
 function getSaved(key) {
-    let value = flatstore.get(key);
-    // if (value !== null && typeof value !== 'undefined' && (key.indexOf("btn") === 0 || key.indexOf("invert") === 0)) {
-    //   value = Number.parseInt(value);
-    // }
-    return value;
+    return flatstore.get(key);
 }
 
 function loadSaved(key, defaultValue) {
-    // let saved = getSaved(key);
-
-    // if (saved == null || typeof saved === 'undefined') {
     flatstore.set(key, defaultValue);
-    // localStorage.setItem(key, defaultValue);
-    // }
-    // else {
-    //   flatstore.set(key, saved);
-    // }
 }
