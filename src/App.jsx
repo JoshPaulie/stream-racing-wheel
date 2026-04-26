@@ -64,15 +64,26 @@ class App extends Component {
     this.start = 0;
     this.gamePadIndex = -1;
 
+    // Restore persisted state or use defaults
+    const persistedRotation = localStorage.getItem('appState_rotation');
+    const persistedController = localStorage.getItem('appState_selectedController');
+    const persistedOverlay = localStorage.getItem('appState_isOverlayActive');
+    const persistedWheelButtons = localStorage.getItem('appState_wheelButtonsEnabled');
+
     this.state = {
       gameLoopStarted: false,
-      rotation: 900,
-      wheelButtonsEnabled: 1,
-      selectedController: 'wheel',
-      isOverlayActive: false
+      rotation: persistedRotation !== null ? Number(persistedRotation) : 900,
+      wheelButtonsEnabled: persistedWheelButtons !== null ? Number(persistedWheelButtons) : 1,
+      selectedController: persistedController || 'wheel',
+      isOverlayActive: persistedOverlay === 'true'
     };
 
-    flatstore.set('wheelButtonsEnabled', 1);
+    // Sync restored wheelButtonsEnabled into flatstore so components read the correct value
+    flatstore.set('wheelButtonsEnabled', persistedWheelButtons !== null ? Number(persistedWheelButtons) : 1);
+    // Sync restored maxrotation into flatstore
+    if (persistedRotation !== null) {
+      flatstore.set('maxrotation', Number(persistedRotation));
+    }
 
     this.gameLoop = this.gameLoop.bind(this);
     this.onGamepadConnected = this.onGamepadConnected.bind(this);
@@ -140,18 +151,23 @@ class App extends Component {
   onWheelRotationChange(e) {
     let rotation = e.target.value;
     flatstore.set('maxrotation', rotation);
+    localStorage.setItem('appState_rotation', rotation);
     this.setState({ rotation });
   }
 
   onControllerChange(e) {
-    this.setState({ selectedController: e.target.value });
+    const selectedController = e.target.value;
+    localStorage.setItem('appState_selectedController', selectedController);
+    this.setState({ selectedController });
   }
 
   openOverlay() {
+    localStorage.setItem('appState_isOverlayActive', 'true');
     this.setState({ isOverlayActive: true });
   }
 
   closeOverlay() {
+    localStorage.setItem('appState_isOverlayActive', 'false');
     this.setState({ isOverlayActive: false });
   }
 
@@ -227,7 +243,10 @@ class App extends Component {
                 <button
                   key={ctrl}
                   className={`controller-btn${this.state.selectedController === ctrl ? ' controller-btn--active' : ''}`}
-                  onClick={() => this.setState({ selectedController: ctrl })}
+                  onClick={() => {
+                    localStorage.setItem('appState_selectedController', ctrl);
+                    this.setState({ selectedController: ctrl });
+                  }}
                 >
                   {ctrl.charAt(0).toUpperCase() + ctrl.slice(1)}
                 </button>
@@ -258,6 +277,7 @@ class App extends Component {
               onChange={(e) => {
                 let wheelButtonsEnabled = Number.parseInt(e.target.value, 10);
                 flatstore.set('wheelButtonsEnabled', wheelButtonsEnabled);
+                localStorage.setItem('appState_wheelButtonsEnabled', wheelButtonsEnabled);
                 this.setState({ wheelButtonsEnabled });
               }}
             >
