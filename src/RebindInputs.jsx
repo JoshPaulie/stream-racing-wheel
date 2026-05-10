@@ -1,8 +1,7 @@
 import React from "react";
 import flatstore from "flatstore";
-import {
-    ProfileLoader,
-} from "./KeybindProfiles";
+import { ProfileLoader } from "./KeybindProfiles";
+import { normalizeControllerType, writeScopedStorage } from "./controllerScope";
 
 function PreviewButtons() {
     const [actionStates] = flatstore.useWatch("actionStates");
@@ -19,28 +18,33 @@ function PreviewButtons() {
 
         if (type === "Button") {
             displayButtons.push(
-                <span key={`btn-${id}`} style={{
-                    display: "inline-block",
-                    position: "relative",
-                    textAlign: "center",
-                    borderRadius: "50%",
-                    width: "2.5rem",
-                    height: "2.5rem",
-                    padding: "0.5rem",
-                    margin: "0.2rem",
-                    backgroundColor: "#222",
-                }}>
-                    <span style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
+                <span
+                    key={`btn-${id}`}
+                    style={{
+                        display: "inline-block",
+                        position: "relative",
+                        textAlign: "center",
                         borderRadius: "50%",
+                        width: "2.5rem",
+                        height: "2.5rem",
                         padding: "0.5rem",
-                        width: "100%",
-                        height: "100%",
-                        color: !pressed ? "white" : "black",
-                        backgroundColor: !pressed ? "#222" : `rgba(255,255,255,${Math.abs(rawValue)})`,
-                    }}>
+                        margin: "0.2rem",
+                        backgroundColor: "#222",
+                    }}
+                >
+                    <span
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            borderRadius: "50%",
+                            padding: "0.5rem",
+                            width: "100%",
+                            height: "100%",
+                            color: !pressed ? "white" : "black",
+                            backgroundColor: !pressed ? "#222" : `rgba(255,255,255,${Math.abs(rawValue)})`,
+                        }}
+                    >
                         {id}
                     </span>
                 </span>
@@ -49,26 +53,31 @@ function PreviewButtons() {
             const axisValue = Number.parseFloat(rawValue);
             const pct = Math.min(((axisValue + 1.0) / 2.0) * 100, 100);
             displayAxes.push(
-                <span key={`axis-${id}`} style={{
-                    padding: "0.5rem",
-                    width: "50px",
-                    height: "2rem",
-                    margin: "0.5rem",
-                    backgroundColor: "black",
-                    color: "white",
-                    position: "relative",
-                    display: "inline-block",
-                    textAlign: "center",
-                }}>
-                    <span style={{
-                        width: `${pct}%`,
-                        height: "0.4rem",
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        transition: "width 0.05s linear",
-                        backgroundColor: "rgba(255,255,255,255)",
-                    }} />
+                <span
+                    key={`axis-${id}`}
+                    style={{
+                        padding: "0.5rem",
+                        width: "50px",
+                        height: "2rem",
+                        margin: "0.5rem",
+                        backgroundColor: "black",
+                        color: "white",
+                        position: "relative",
+                        display: "inline-block",
+                        textAlign: "center",
+                    }}
+                >
+                    <span
+                        style={{
+                            width: `${pct}%`,
+                            height: "0.4rem",
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            transition: "width 0.05s linear",
+                            backgroundColor: "rgba(255,255,255,255)",
+                        }}
+                    />
                     {id}
                 </span>
             );
@@ -89,14 +98,15 @@ function PreviewButtons() {
     );
 }
 
-function RebindInputs(props) {
+function RebindInputs({ controllerType = "wheel" }) {
+    const normalized = normalizeControllerType(controllerType);
     const [gamepad] = flatstore.useWatch("gamePad");
 
     if (!gamepad) return <></>;
 
     return (
         <div style={{ paddingBottom: "3rem" }}>
-            <ProfileLoader />
+            <ProfileLoader controllerType={normalized} />
             <br />
             <p style={{ color: "white" }}>
                 Press and move your controller inputs to identify the ID needed to map the input to
@@ -104,142 +114,148 @@ function RebindInputs(props) {
             </p>
 
             <PreviewButtons />
-            <div style={{ paddingBottom: "1rem" }}>
-                <h3 style={{ color: "white", padding: "1rem 0" }}>Wheel and Pedal Binding</h3>
 
-                <InputBind title="Wheel" id="btnWheel" allowInvert={true} invertId={"valueWheel"} />
-                <InputBind title="Gas" id="btnGas" allowInvert={true} invertId={"valueGas"} />
-                <InputBind title="Break" id="btnBrake" allowInvert={true} invertId={"valueBrake"} />
-                <InputBind
-                    title="Clutch"
-                    id="btnClutch"
-                    allowInvert={true}
-                    invertId={"valueClutch"}
-                />
+            {normalized === "wheel" && (
+                <>
+                    <div style={{ paddingBottom: "1rem" }}>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Wheel Binding</h3>
+                        <InputBind
+                            controllerType={normalized}
+                            title="Wheel"
+                            id="btnWheel"
+                            allowInvert={true}
+                        />
+                    </div>
 
-                {/* <InputBind title="Gear 8" id="buttonGear8" options={buttonOptions} /> */}
-            </div>
-            <div style={{ paddingBottom: "1rem" }}>
-                <h3 style={{ color: "white", padding: "1rem 0" }}>Gear Binding</h3>
-                <InputBind
-                    title="Gear Reverse"
-                    id="btnGearReverse"
-                    allowInvert={true}
-                    invertId={"valueGearReverse"}
-                />
-                <InputBind
-                    title="Gear 1"
-                    id="btnGear1"
-                    allowInvert={true}
-                    invertId={"valueGear1"}
-                />
-                <InputBind
-                    title="Gear 2"
-                    id="btnGear2"
-                    allowInvert={true}
-                    invertId={"valueGear2"}
-                />
-                <InputBind
-                    title="Gear 3"
-                    id="btnGear3"
-                    allowInvert={true}
-                    invertId={"valueGear3"}
-                />
-                <InputBind
-                    title="Gear 4"
-                    id="btnGear4"
-                    allowInvert={true}
-                    invertId={"valueGear4"}
-                />
-                <InputBind
-                    title="Gear 5"
-                    id="btnGear5"
-                    allowInvert={true}
-                    invertId={"valueGear5"}
-                />
-                <InputBind
-                    title="Gear 6"
-                    id="btnGear6"
-                    allowInvert={true}
-                    invertId={"valueGear6"}
-                />
-                <InputBind
-                    title="Gear 7"
-                    id="btnGear7"
-                    allowInvert={true}
-                    invertId={"valueGear7"}
-                />
-            </div>
+                    <div style={{ paddingBottom: "1rem" }}>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Wheel Button Binding</h3>
+                        <InputBind controllerType={normalized} title="D-Up" id="btnWheel_DUp" />
+                        <InputBind controllerType={normalized} title="D-Down" id="btnWheel_DDown" />
+                        <InputBind controllerType={normalized} title="D-Left" id="btnWheel_DLeft" />
+                        <InputBind controllerType={normalized} title="D-Right" id="btnWheel_DRight" />
+                        <InputBind controllerType={normalized} title="Back" id="btnWheel_Back" />
+                        <InputBind controllerType={normalized} title="Start" id="btnWheel_Start" />
+                        <br />
+                        <InputBind controllerType={normalized} title="X" id="btnWheel_X" />
+                        <InputBind controllerType={normalized} title="Y" id="btnWheel_Y" />
+                        <InputBind controllerType={normalized} title="A" id="btnWheel_A" />
+                        <InputBind controllerType={normalized} title="B" id="btnWheel_B" />
+                        <InputBind controllerType={normalized} title="RSB" id="btnWheel_RSB" />
+                        <InputBind controllerType={normalized} title="LSB" id="btnWheel_LSB" />
+                        <InputBind controllerType={normalized} title="LB" id="btnWheel_LB" />
+                        <InputBind controllerType={normalized} title="RB" id="btnWheel_RB" />
+                        <InputBind controllerType={normalized} title="L3" id="btnWheel_L3" />
+                        <InputBind controllerType={normalized} title="R3" id="btnWheel_R3" />
+                        <InputBind controllerType={normalized} title="L4" id="btnWheel_L4" />
+                        <InputBind controllerType={normalized} title="R4" id="btnWheel_R4" />
+                    </div>
 
-            <div style={{ paddingBottom: "1rem" }}>
-                <h3 style={{ color: "white", padding: "1rem 0" }}>Wheel Button Binding</h3>
-                <InputBind title="D-Up" id="btnWheel_DUp" />
-                <InputBind title="D-Down" id="btnWheel_DDown" />
-                <InputBind title="D-Left" id="btnWheel_DLeft" />
-                <InputBind title="D-Right" id="btnWheel_DRight" />
-                <InputBind title="Back" id="btnWheel_Back" />
-                <InputBind title="Start" id="btnWheel_Start" />
-                <br />
-                <InputBind title="X" id="btnWheel_X" />
-                <InputBind title="Y" id="btnWheel_Y" />
-                <InputBind title="A" id="btnWheel_A" />
-                <InputBind title="B" id="btnWheel_B" />
-                <InputBind title="RSB" id="btnWheel_RSB" />
-                <InputBind title="LSB" id="btnWheel_LSB" />
-                <InputBind title="LB" id="btnWheel_LB" />
-                <InputBind title="RB" id="btnWheel_RB" />
-                <InputBind title="L3" id="btnWheel_L3" />
-                <InputBind title="R3" id="btnWheel_R3" />
-                <InputBind title="L4" id="btnWheel_L4" />
-                <InputBind title="R4" id="btnWheel_R4" />
-            </div>
-            <div>
-                <h3 style={{ color: "white", padding: "1rem 0" }}>Change Images</h3>
-                <h5
-                    style={{
-                        fontWeight: "light",
-                        color: "white",
-                        padding: "0",
-                        paddingBottom: "1rem",
-                    }}
-                >
-                    Enter an image URL to replace the existing image. Images will be forced to the
-                    pixel ratios below.
-                </h5>
-                <ImageBind title="Wheel" id="imgWheel" width="500" height="500" />
-                <ImageBind title="Pedal Base" id="imgPedalBase" width="400" height="238" />
-                <ImageBind title="Gas Pedal" id="imgGas" width="70" height="121" />
-                <ImageBind title="Brake Pedal" id="imgBrake" width="70" height="96" />
-                <ImageBind title="Clutch Petal" id="imgClutch" width="70" height="96" />
-                <ImageBind title="Shifter Base" id="imgShifterBase" width="250" height="293" />
-                <ImageBind title="Shifter Head" id="imgShifter" width="150" height="150" />
+                    <div>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Change Wheel Images</h3>
+                        <h5
+                            style={{
+                                fontWeight: "light",
+                                color: "white",
+                                padding: "0",
+                                paddingBottom: "1rem",
+                            }}
+                        >
+                            Enter an image URL to replace the existing image. Images will be forced to the
+                            pixel ratios below.
+                        </h5>
+                        <ImageBind controllerType={normalized} title="Wheel" id="imgWheel" width="500" height="500" />
 
-                <h3 style={{ color: "white", padding: "1rem 0" }}>Change Wheel Button Masks</h3>
-                <ImageBind title="D-Up" id="imgWheel_DUp" width="500" height="500" />
-                <ImageBind title="D-Down" id="imgWheel_DDown" width="500" height="500" />
-                <ImageBind title="D-Left" id="imgWheel_DLeft" width="500" height="500" />
-                <ImageBind title="D-Right" id="imgWheel_DRight" width="500" height="500" />
-                <ImageBind title="Back" id="imgWheel_Back" width="500" height="500" />
-                <ImageBind title="Start" id="imgWheel_Start" width="500" height="500" />
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Change Wheel Button Masks</h3>
+                        <ImageBind controllerType={normalized} title="D-Up" id="imgWheel_DUp" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="D-Down" id="imgWheel_DDown" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="D-Left" id="imgWheel_DLeft" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="D-Right" id="imgWheel_DRight" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="Back" id="imgWheel_Back" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="Start" id="imgWheel_Start" width="500" height="500" />
 
-                <ImageBind title="X" id="imgWheel_X" width="500" height="500" />
-                <ImageBind title="Y" id="imgWheel_Y" width="500" height="500" />
-                <ImageBind title="A" id="imgWheel_A" width="500" height="500" />
-                <ImageBind title="B" id="imgWheel_B" width="500" height="500" />
-                <ImageBind title="RSB" id="imgWheel_RSB" width="500" height="500" />
-                <ImageBind title="LSB" id="imgWheel_LSB" width="500" height="500" />
-                <ImageBind title="LB" id="imgWheel_LB" width="500" height="500" />
-                <ImageBind title="RB" id="imgWheel_RB" width="500" height="500" />
-                <ImageBind title="L3" id="imgWheel_L3" width="500" height="500" />
-                <ImageBind title="R3" id="imgWheel_R3" width="500" height="500" />
-                <ImageBind title="L4" id="imgWheel_L4" width="500" height="500" />
-                <ImageBind title="R4" id="imgWheel_R4" width="500" height="500" />
-            </div>
+                        <ImageBind controllerType={normalized} title="X" id="imgWheel_X" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="Y" id="imgWheel_Y" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="A" id="imgWheel_A" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="B" id="imgWheel_B" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="RSB" id="imgWheel_RSB" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="LSB" id="imgWheel_LSB" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="LB" id="imgWheel_LB" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="RB" id="imgWheel_RB" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="L3" id="imgWheel_L3" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="R3" id="imgWheel_R3" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="L4" id="imgWheel_L4" width="500" height="500" />
+                        <ImageBind controllerType={normalized} title="R4" id="imgWheel_R4" width="500" height="500" />
+                    </div>
+                </>
+            )}
+
+            {normalized === "pedal" && (
+                <>
+                    <div style={{ paddingBottom: "1rem" }}>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Pedal Binding</h3>
+                        <InputBind controllerType={normalized} title="Gas" id="btnGas" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Break" id="btnBrake" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Clutch" id="btnClutch" allowInvert={true} />
+                    </div>
+
+                    <div>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Change Pedal Images</h3>
+                        <h5
+                            style={{
+                                fontWeight: "light",
+                                color: "white",
+                                padding: "0",
+                                paddingBottom: "1rem",
+                            }}
+                        >
+                            Enter an image URL to replace the existing image. Images will be forced to the
+                            pixel ratios below.
+                        </h5>
+                        <ImageBind controllerType={normalized} title="Pedal Base" id="imgPedalBase" width="400" height="238" />
+                        <ImageBind controllerType={normalized} title="Gas Pedal" id="imgGas" width="70" height="121" />
+                        <ImageBind controllerType={normalized} title="Brake Pedal" id="imgBrake" width="70" height="96" />
+                        <ImageBind controllerType={normalized} title="Clutch Petal" id="imgClutch" width="70" height="96" />
+                    </div>
+                </>
+            )}
+
+            {normalized === "shifter" && (
+                <>
+                    <div style={{ paddingBottom: "1rem" }}>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Gear Binding</h3>
+                        <InputBind controllerType={normalized} title="Gear Reverse" id="btnGearReverse" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 1" id="btnGear1" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 2" id="btnGear2" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 3" id="btnGear3" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 4" id="btnGear4" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 5" id="btnGear5" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 6" id="btnGear6" allowInvert={true} />
+                        <InputBind controllerType={normalized} title="Gear 7" id="btnGear7" allowInvert={true} />
+                    </div>
+
+                    <div>
+                        <h3 style={{ color: "white", padding: "1rem 0" }}>Change Shifter Images</h3>
+                        <h5
+                            style={{
+                                fontWeight: "light",
+                                color: "white",
+                                padding: "0",
+                                paddingBottom: "1rem",
+                            }}
+                        >
+                            Enter an image URL to replace the existing image. Images will be forced to the
+                            pixel ratios below.
+                        </h5>
+                        <ImageBind controllerType={normalized} title="Shifter Base" id="imgShifterBase" width="250" height="293" />
+                        <ImageBind controllerType={normalized} title="Shifter Head" id="imgShifter" width="150" height="150" />
+                    </div>
+                </>
+            )}
         </div>
     );
 }
 
-function ImageBind({ id, title, width, height }) {
+function ImageBind({ controllerType, id, title, width, height }) {
     const [value] = flatstore.useChange(id);
     return (
         <div style={{ display: "block", paddingLeft: "1rem", paddingBottom: "0.5rem" }}>
@@ -261,8 +277,7 @@ function ImageBind({ id, title, width, height }) {
                 value={value}
                 onChange={(e) => {
                     flatstore.set(id, e.target.value);
-                    localStorage.setItem(id, e.target.value);
-
+                    writeScopedStorage(controllerType, id, e.target.value);
                     flatstore.set("updatedSettings", Date.now());
                 }}
                 style={{ height: "2rem", width: "400px" }}
@@ -274,7 +289,7 @@ function ImageBind({ id, title, width, height }) {
     );
 }
 
-function InputBind({ id, title, allowInvert }) {
+function InputBind({ controllerType, id, title, allowInvert }) {
     const actionStates = flatstore.get("actionStates");
     const [defaultValue] = flatstore.useChange(id);
     const [defaultChecked] = flatstore.useWatch("invert/" + id);
@@ -303,7 +318,9 @@ function InputBind({ id, title, allowInvert }) {
                 name={id}
                 value={defaultValue}
                 onChange={(e) => {
-                    flatstore.set(id, Number.parseInt(e.target.value));
+                    const value = Number.parseInt(e.target.value, 10);
+                    flatstore.set(id, value);
+                    writeScopedStorage(controllerType, id, value);
                     flatstore.set("updatedSettings", Date.now());
                 }}
             >
@@ -326,6 +343,7 @@ function InputBind({ id, title, allowInvert }) {
                             checked={defaultChecked === "false" || !defaultChecked ? false : true}
                             onChange={(e) => {
                                 flatstore.set("invert/" + id, e.target.checked);
+                                writeScopedStorage(controllerType, "invert/" + id, e.target.checked);
                                 flatstore.set("updatedSettings", Date.now());
                             }}
                         />

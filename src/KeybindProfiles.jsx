@@ -1,5 +1,12 @@
 import flatstore from "flatstore";
 import { useEffect, useState } from "react";
+import {
+    getControllerProfileKeys,
+    getScopedStorageKey,
+    normalizeControllerType,
+    readScopedStorage,
+    writeScopedStorage,
+} from "./controllerScope";
 
 const basePath = import.meta.env.BASE_URL;
 const assetPath = (fileName) => `${basePath}g920/${fileName}`;
@@ -64,32 +71,58 @@ export const defaultProfiles = {
     },
 };
 
-export function getCurrentProfile() {
-    let keys = Object.keys(defaultProfiles.G920); //use keys from this profile
+function getStorageNames(controllerType) {
+    const normalized = normalizeControllerType(controllerType);
+    return {
+        defaultProfile: getScopedStorageKey(normalized, "defaultProfile"),
+        profiles: getScopedStorageKey(normalized, "profiles"),
+    };
+}
+
+function parseStoredValue(raw) {
+    if (typeof raw !== "string") {
+        return raw;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (_e) {
+        return raw;
+    }
+}
+
+function saveKeyValue(controllerType, key, value) {
+    if (typeof value === "undefined") {
+        return;
+    }
+
+    flatstore.set(key, value);
+    writeScopedStorage(controllerType, key, value);
+}
+
+export function getCurrentProfile(controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    const keys = getControllerProfileKeys(normalized);
 
     let json = {};
     for (let key of keys) {
-        try {
-            json[key] = JSON.parse(getSaved(key));
-        } catch (e) {
-            json[key] = getSaved(key);
+        const current = flatstore.get(key);
+        if (typeof current !== "undefined") {
+            json[key] = current;
         }
 
-        let inverted = getSaved("invert/" + key);
+        const inverted = flatstore.get("invert/" + key);
         if (typeof inverted !== "undefined" && inverted != null) {
-            try {
-                json["invert/" + key] = JSON.parse(getSaved("invert/" + key));
-            } catch (e) {
-                json["invert/" + key] = getSaved("invert/" + key);
-            }
+            json["invert/" + key] = inverted;
         }
     }
     return json;
 }
 
-export function ProfileLoader({}) {
+export function ProfileLoader({ controllerType = "wheel" }) {
+    const normalized = normalizeControllerType(controllerType);
     const [defaultProfile] = flatstore.useChange("defaultProfile");
-    const profiles = getProfiles();
+    const profiles = getProfiles(normalized);
     const profileNames = Object.keys(profiles);
 
     const [isCreate, setIsCreate] = useState(false);
@@ -100,9 +133,9 @@ export function ProfileLoader({}) {
     const [updatedSettings] = flatstore.useChange("updatedSettings");
 
     useEffect(() => {
-        const currentProfile = getCurrentProfile();
+        const currentProfile = getCurrentProfile(normalized);
         setProfileJson(JSON.stringify(currentProfile, null, 2));
-    }, [updatedSettings]);
+    }, [updatedSettings, normalized]);
 
     return (
         <div>
@@ -117,19 +150,19 @@ export function ProfileLoader({}) {
                 id="profileLoader"
                 value={isCreate ? "*" : defaultProfile}
                 onChange={(e) => {
-                    const profileName = e.target.value;
-                    if (profileName === "*") {
-                        const curProfileName = getDefaultProfile();
+                    const selectedProfileName = e.target.value;
+                    if (selectedProfileName === "*") {
+                        const curProfileName = getDefaultProfile(normalized);
                         if (curProfileName !== "*") {
                             setPrevProfileName(curProfileName);
                         }
 
-                        const currentProfile = getCurrentProfile();
+                        const currentProfile = getCurrentProfile(normalized);
                         setProfileJson(JSON.stringify(currentProfile, null, 2));
                         setIsCreate(true);
                         return;
                     }
-                    loadProfile(profileName);
+                    loadProfile(selectedProfileName, normalized);
                     setIsCreate(false);
                 }}
             >
@@ -146,10 +179,10 @@ export function ProfileLoader({}) {
                 <span style={{ display: "inline-block", paddingLeft: "1rem" }}>
                     <button
                         onClick={() => {
-                            const json = getCurrentProfile();
-                            const curProfileName = getDefaultProfile();
-                            addProfile(curProfileName, json);
-                            loadProfile(curProfileName);
+                            const json = getCurrentProfile(normalized);
+                            const curProfileName = getDefaultProfile(normalized);
+                            addProfile(curProfileName, json, normalized);
+                            loadProfile(curProfileName, normalized);
                             setIsCreate(false);
                         }}
                     >
@@ -158,12 +191,11 @@ export function ProfileLoader({}) {
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     <button
                         onClick={() => {
-                            const curProfileName = getDefaultProfile();
-                            if (!window.confirm(`Do you want to DELETE "${curProfileName}" profile?`))
-                                return;
+                            const curProfileName = getDefaultProfile(normalized);
+                            if (!window.confirm(`Do you want to DELETE "${curProfileName}" profile?`)) return;
 
-                            removeProfile(curProfileName);
-                            loadProfile("G920");
+                            removeProfile(curProfileName, normalized);
+                            loadProfile("G920", normalized);
                             setIsCreate(false);
                         }}
                     >
@@ -237,8 +269,8 @@ export function ProfileLoader({}) {
                                     return;
                                 }
 
-                                addProfile(profileName, json);
-                                loadProfile(profileName);
+                                addProfile(profileName, json, normalized);
+                                loadProfile(profileName, normalized);
                                 setIsCreate(false);
                             } catch (e) {
                                 alert("Profile JSON is invalid, must be valid JSON syntax.");
@@ -253,9 +285,9 @@ export function ProfileLoader({}) {
                         name="reset"
                         value="reset"
                         onClick={() => {
-                            const defaultProfile = getDefaultProfile();
-                            loadProfile(defaultProfile);
-                            const currentProfile = getCurrentProfile();
+                            const currentDefaultProfile = getDefaultProfile(normalized);
+                            loadProfile(currentDefaultProfile, normalized);
+                            const currentProfile = getCurrentProfile(normalized);
                             setProfileJson(JSON.stringify(currentProfile, null, 2));
                         }}
                     >
@@ -266,7 +298,7 @@ export function ProfileLoader({}) {
                         name="cancel"
                         value="cancel"
                         onClick={() => {
-                            loadProfile(prevProfileName || getDefaultProfile());
+                            loadProfile(prevProfileName || getDefaultProfile(normalized), normalized);
                             setIsCreate(false);
                         }}
                     >
@@ -278,26 +310,38 @@ export function ProfileLoader({}) {
     );
 }
 
-export function getDefaultProfile() {
-    let defaultProfile = localStorage.getItem("defaultProfile");
-    if (defaultProfile) {
-        let profiles = getProfiles();
-        if (profiles[defaultProfile]) {
-            return defaultProfile;
+export function getDefaultProfile(controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    const { defaultProfile } = getStorageNames(normalized);
+    let currentDefaultProfile = localStorage.getItem(defaultProfile);
+
+    if (currentDefaultProfile) {
+        const profiles = getProfiles(normalized);
+        if (profiles[currentDefaultProfile]) {
+            return currentDefaultProfile;
         }
     }
 
     return "G920";
 }
-export function setDefaultProfile(profileName) {
-    localStorage.setItem("defaultProfile", profileName);
+
+export function setDefaultProfile(profileName, controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    const { defaultProfile } = getStorageNames(normalized);
+
+    localStorage.setItem(defaultProfile, profileName);
     flatstore.set("defaultProfile", profileName);
 }
 
-export function getProfiles() {
+export function getProfiles(controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    const { profiles } = getStorageNames(normalized);
+
     try {
-        let profiles = localStorage.getItem("profiles");
-        if (profiles) return JSON.parse(profiles);
+        const storedProfiles = localStorage.getItem(profiles);
+        if (storedProfiles) {
+            return JSON.parse(storedProfiles);
+        }
     } catch (e) {
         console.error(e);
     }
@@ -305,43 +349,50 @@ export function getProfiles() {
     return defaultProfiles;
 }
 
-export function loadDefaultProfile() {
-    let defaultProfile = getDefaultProfile();
-    loadProfile(defaultProfile);
+export function loadDefaultProfile(controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    let defaultProfileName = getDefaultProfile(normalized);
+    loadProfile(defaultProfileName, normalized);
 }
 
-export function loadProfile(profileName) {
-    const profiles = getProfiles();
-    let resolvedProfileName = profileName;
-    let profile = profiles[resolvedProfileName];
+export function loadProfile(profileName, controllerType = "wheel") {
+    const normalized = normalizeControllerType(controllerType);
+    const profiles = getProfiles(normalized);
+    const profile = profiles[profileName] || profiles.G920 || defaultProfiles.G920;
 
-    if (!profile) {
-        resolvedProfileName = "G920";
-        profile = profiles[resolvedProfileName] || defaultProfiles.G920;
-    }
-
-    if (!profile) {
-        return;
-    }
-
-    const keys = Object.keys(profile);
+    const keys = getControllerProfileKeys(normalized);
     for (const key of keys) {
-        loadSaved(key, profile[key]);
-        loadSaved("invert/" + key, profile["invert/" + key]);
+        const profileValue = typeof profile[key] === "undefined" ? defaultProfiles.G920[key] : profile[key];
+        const persistedValue = readScopedStorage(normalized, key);
+        const resolvedValue = persistedValue === null ? profileValue : persistedValue;
+
+        saveKeyValue(normalized, key, resolvedValue);
+
+        const invertKey = "invert/" + key;
+        const invertProfileValue = profile[invertKey];
+        const persistedInvert = readScopedStorage(normalized, invertKey);
+
+        if (persistedInvert !== null) {
+            saveKeyValue(normalized, invertKey, persistedInvert);
+        } else if (typeof invertProfileValue !== "undefined") {
+            saveKeyValue(normalized, invertKey, invertProfileValue);
+        }
     }
+
     flatstore.set("updatedSettings", Date.now());
-    setDefaultProfile(resolvedProfileName);
-    flatstore.set("defaultProfile", resolvedProfileName);
+    setDefaultProfile(profileName, normalized);
+    flatstore.set("defaultProfile", profileName);
 }
 
-export function addProfile(profileName, profile) {
+export function addProfile(profileName, profile, controllerType = "wheel") {
     if (typeof profileName !== "string") {
         console.error("Profile name must be string.");
         alert("Profile name must be string.");
         return;
     }
 
-    let profiles = getProfiles();
+    const normalized = normalizeControllerType(controllerType);
+    let profiles = getProfiles(normalized);
 
     if (profileName in profiles) {
         console.warn(`Profile "${profileName}" already exists.`);
@@ -350,26 +401,21 @@ export function addProfile(profileName, profile) {
 
     profiles[profileName] = profile;
 
-    localStorage.setItem("profiles", JSON.stringify(profiles));
+    const { profiles: profilesStorageKey } = getStorageNames(normalized);
+    localStorage.setItem(profilesStorageKey, JSON.stringify(profiles));
 }
 
-export function removeProfile(profileName) {
+export function removeProfile(profileName, controllerType = "wheel") {
     if (profileName === "G920") {
         return false;
     }
 
-    let profiles = getProfiles();
+    const normalized = normalizeControllerType(controllerType);
+    let profiles = getProfiles(normalized);
     if (profileName in profiles) {
         delete profiles[profileName];
     }
 
-    localStorage.setItem("profiles", JSON.stringify(profiles));
-}
-
-function getSaved(key) {
-    return flatstore.get(key);
-}
-
-function loadSaved(key, defaultValue) {
-    flatstore.set(key, defaultValue);
+    const { profiles: profilesStorageKey } = getStorageNames(normalized);
+    localStorage.setItem(profilesStorageKey, JSON.stringify(profiles));
 }

@@ -1,444 +1,464 @@
-import React, { Component } from 'react';
-import './index.css';
+import React, { Component } from "react";
+import "./index.css";
 
-import Wheel from './g920/wheel';
-import Pedals from './g920/pedals';
-import ShifterBase from './g920/shifterbase';
+import Wheel from "./g920/wheel";
+import Pedals from "./g920/pedals";
+import ShifterBase from "./g920/shifterbase";
 
-import RebindInputs from './RebindInputs';
+import RebindInputs from "./RebindInputs";
 
-import { loadDefaultProfile } from './KeybindProfiles';
+import { loadDefaultProfile } from "./KeybindProfiles";
+import {
+    getControllerFromPath,
+    getControllerPath,
+    readScopedStorage,
+    writeScopedStorage,
+} from "./controllerScope";
 
-import flatstore from 'flatstore';
+import flatstore from "flatstore";
 
 let defaultButtons = [];
 let defaultAxes = [];
 for (let i = 0; i < 20; i++) {
-  defaultButtons.push({ pressed: false, touched: false, value: 0 });
-  defaultAxes.push(0);
+    defaultButtons.push({ pressed: false, touched: false, value: 0 });
+    defaultAxes.push(0);
 }
 
-loadDefaultProfile();
+flatstore.set("valueWheel", 0);
+flatstore.set("valueBrake", 0);
+flatstore.set("valueGas", 0);
+flatstore.set("valueClutch", 0);
+flatstore.set("valueGearReverse", 0);
+flatstore.set("valueGear1", 0);
+flatstore.set("valueGear2", 0);
+flatstore.set("valueGear3", 0);
+flatstore.set("valueGear4", 0);
+flatstore.set("valueGear5", 0);
+flatstore.set("valueGear6", 0);
+flatstore.set("valueGear7", 0);
 
-flatstore.set('valueWheel', 0);
-flatstore.set('valueBrake', 0);
-flatstore.set('valueGas', 0);
-flatstore.set('valueClutch', 0);
-flatstore.set('valueGearReverse', 0);
-flatstore.set('valueGear1', 0);
-flatstore.set('valueGear2', 0);
-flatstore.set('valueGear3', 0);
-flatstore.set('valueGear4', 0);
-flatstore.set('valueGear5', 0);
-flatstore.set('valueGear6', 0);
-flatstore.set('valueGear7', 0);
+flatstore.set("valueWheel_DUp", 0);
+flatstore.set("valueWheel_DDown", 0);
+flatstore.set("valueWheel_DLeft", 0);
+flatstore.set("valueWheel_DRight", 0);
+flatstore.set("valueWheel_Back", 0);
+flatstore.set("valueWheel_Start", 0);
+flatstore.set("valueWheel_X", 0);
+flatstore.set("valueWheel_Y", 0);
+flatstore.set("valueWheel_A", 0);
+flatstore.set("valueWheel_B", 0);
+flatstore.set("valueWheel_RSB", 0);
+flatstore.set("valueWheel_LSB", 0);
+flatstore.set("valueWheel_LB", 0);
+flatstore.set("valueWheel_RB", 0);
+flatstore.set("valueWheel_L3", 0);
+flatstore.set("valueWheel_R3", 0);
+flatstore.set("valueWheel_L4", 0);
+flatstore.set("valueWheel_R4", 0);
 
-flatstore.set('valueWheel_DUp', 0);
-flatstore.set('valueWheel_DDown', 0);
-flatstore.set('valueWheel_DLeft', 0);
-flatstore.set('valueWheel_DRight', 0);
-flatstore.set('valueWheel_Back', 0);
-flatstore.set('valueWheel_Start', 0);
-flatstore.set('valueWheel_X', 0);
-flatstore.set('valueWheel_Y', 0);
-flatstore.set('valueWheel_A', 0);
-flatstore.set('valueWheel_B', 0);
-flatstore.set('valueWheel_RSB', 0);
-flatstore.set('valueWheel_LSB', 0);
-flatstore.set('valueWheel_LB', 0);
-flatstore.set('valueWheel_RB', 0);
-flatstore.set('valueWheel_L3', 0);
-flatstore.set('valueWheel_R3', 0);
-flatstore.set('valueWheel_L4', 0);
-flatstore.set('valueWheel_R4', 0);
-
-flatstore.set('actionStates', []);
-flatstore.set('buttons', defaultButtons);
-flatstore.set('axes', defaultAxes);
+flatstore.set("actionStates", []);
+flatstore.set("buttons", defaultButtons);
+flatstore.set("axes", defaultAxes);
 
 class App extends Component {
-  constructor(props) {
-    super(props);
+    constructor(props) {
+        super(props);
 
-    this.gamePads = {};
-    this.start = 0;
-    this.gamePadIndex = -1;
+        this.gamePads = {};
+        this.start = 0;
+        this.gamePadIndex = -1;
 
-    // Restore persisted state or use defaults
-    const persistedRotation = localStorage.getItem('appState_rotation');
-    const persistedController = localStorage.getItem('appState_selectedController');
-    const persistedOverlay = localStorage.getItem('appState_isOverlayActive');
-    const persistedWheelButtons = localStorage.getItem('appState_wheelButtonsEnabled');
+        const controllerType = getControllerFromPath(window.location.pathname);
+        loadDefaultProfile(controllerType);
 
-    this.state = {
-      gameLoopStarted: false,
-      rotation: persistedRotation !== null ? Number(persistedRotation) : 900,
-      wheelButtonsEnabled: persistedWheelButtons !== null ? Number(persistedWheelButtons) : 1,
-      selectedController: persistedController || 'wheel',
-      isOverlayActive: persistedOverlay === 'true'
-    };
+        const persistedRotation = readScopedStorage(controllerType, "rotation");
+        const persistedOverlay = readScopedStorage(controllerType, "isOverlayActive");
+        const persistedWheelButtons = readScopedStorage(controllerType, "wheelButtonsEnabled");
 
-    // Sync restored wheelButtonsEnabled into flatstore so components read the correct value
-    flatstore.set('wheelButtonsEnabled', persistedWheelButtons !== null ? Number(persistedWheelButtons) : 1);
-    // Sync restored maxrotation into flatstore
-    if (persistedRotation !== null) {
-      flatstore.set('maxrotation', Number(persistedRotation));
+        const rotation = persistedRotation !== null ? Number(persistedRotation) : 900;
+        const wheelButtonsEnabled = persistedWheelButtons !== null ? Number(persistedWheelButtons) : 1;
+
+        this.state = {
+            controllerType,
+            gameLoopStarted: false,
+            rotation,
+            wheelButtonsEnabled,
+            isOverlayActive: persistedOverlay === true,
+        };
+
+        flatstore.set("wheelButtonsEnabled", wheelButtonsEnabled);
+        flatstore.set("maxrotation", rotation);
+
+        this.gameLoop = this.gameLoop.bind(this);
+        this.onGamepadConnected = this.onGamepadConnected.bind(this);
+        window.addEventListener("gamepadconnected", this.onGamepadConnected);
     }
 
-    this.gameLoop = this.gameLoop.bind(this);
-    this.onGamepadConnected = this.onGamepadConnected.bind(this);
-    window.addEventListener('gamepadconnected', this.onGamepadConnected);
-  }
+    onGamepadConnected(e) {
+        const gp = navigator.getGamepads()[e.gamepad.index];
+        if (!gp) {
+            return;
+        }
 
-  onGamepadConnected(e) {
-    const gp = navigator.getGamepads()[e.gamepad.index];
-    if (!gp) {
-      return;
-    }
-
-    console.log(
-      'Gamepad connected at index %d: %s. %d buttons, %d axes.',
-      gp.index, gp.id, gp.buttons.length, gp.axes.length
-    );
-
-    let currentGamePad = flatstore.get('gamePad');
-    if (!currentGamePad) {
-      this.changeGamepad(gp.index);
-    }
-
-    this.gamePads[gp.index] = gp;
-    this.setState({ gamePads: this.gamePads });
-    if (gp.id.toLowerCase().indexOf('wheel') > -1) {
-      this.changeGamepad(gp.index);
-    }
-  }
-
-  onChange(e) {
-    this.changeGamepad(e.target.value);
-  }
-
-  changeGamepad(id) {
-    const gamePadId = Number.parseInt(id, 10);
-    if (Number.isNaN(gamePadId)) {
-      return;
-    }
-
-    const gp = navigator.getGamepads()[gamePadId];
-    if (!gp) {
-      return;
-    }
-
-    if (this.start) {
-      cancelAnimationFrame(this.start);
-      this.start = 0;
-    }
-
-    this.gamePadIndex = gamePadId;
-    flatstore.set('gamePadIndex', gamePadId);
-    flatstore.set('gamePad', gp);
-    this.setState({ gamepadIndex: gamePadId, gameLoopStarted: true });
-    this.gameLoop();
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('gamepadconnected', this.onGamepadConnected);
-    if (this.start) {
-      cancelAnimationFrame(this.start);
-      this.start = 0;
-    }
-  }
-
-  onWheelRotationChange(e) {
-    let rotation = e.target.value;
-    flatstore.set('maxrotation', rotation);
-    localStorage.setItem('appState_rotation', rotation);
-    this.setState({ rotation });
-  }
-
-  onControllerChange(e) {
-    const selectedController = e.target.value;
-    localStorage.setItem('appState_selectedController', selectedController);
-    this.setState({ selectedController });
-  }
-
-  openOverlay() {
-    localStorage.setItem('appState_isOverlayActive', 'true');
-    this.setState({ isOverlayActive: true });
-  }
-
-  closeOverlay() {
-    localStorage.setItem('appState_isOverlayActive', 'false');
-    this.setState({ isOverlayActive: false });
-  }
-
-  onControllerStageClick() {
-    if (this.state.isOverlayActive) {
-      this.closeOverlay();
-      return;
-    }
-
-    this.openOverlay();
-  }
-
-  renderSelectedController() {
-    switch (this.state.selectedController) {
-      case 'pedals':
-        return (
-          <div
-            className="single-controller-wrap single-controller-pedals"
-            onClick={() => {
-              this.onControllerStageClick();
-            }}
-          >
-            <Pedals />
-          </div>
+        console.log(
+            "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+            gp.index,
+            gp.id,
+            gp.buttons.length,
+            gp.axes.length
         );
-      case 'shifter':
-        return (
-          <div
-            className="single-controller-wrap single-controller-shifter"
-            onClick={() => {
-              this.onControllerStageClick();
-            }}
-          >
-            <ShifterBase />
-          </div>
-        );
-      case 'wheel':
-      default:
-        return (
-          <div
-            className="single-controller-wrap single-controller-wheel"
-            onClick={() => {
-              this.onControllerStageClick();
-            }}
-          >
-            <Wheel rotation={this.state.rotation} />
-          </div>
-        );
+
+        let currentGamePad = flatstore.get("gamePad");
+        if (!currentGamePad) {
+            this.changeGamepad(gp.index);
+        }
+
+        this.gamePads[gp.index] = gp;
+        this.setState({ gamePads: this.gamePads });
+        if (gp.id.toLowerCase().indexOf("wheel") > -1) {
+            this.changeGamepad(gp.index);
+        }
     }
-  }
 
-  renderOverlayView() {
-    return (
-      <div className="overlay-stage">
-        {this.renderSelectedController()}
-      </div>
-    );
-  }
+    onChange(e) {
+        this.changeGamepad(e.target.value);
+    }
 
-  renderConfigureView() {
-    return (
-      <div className="configure-page">
-        <div className="configure-panel">
-          <h1 className="configure-title">Stream Racing Wheel</h1>
-          <p className="configure-copy">
-            Pick one controller for this browser source instance, then enter overlay mode.
-          </p>
+    changeGamepad(id) {
+        const gamePadId = Number.parseInt(id, 10);
+        if (Number.isNaN(gamePadId)) {
+            return;
+        }
 
-          <div className="configure-row">
-            <label className="configure-label">Controller UI</label>
+        const gp = navigator.getGamepads()[gamePadId];
+        if (!gp) {
+            return;
+        }
+
+        if (this.start) {
+            cancelAnimationFrame(this.start);
+            this.start = 0;
+        }
+
+        this.gamePadIndex = gamePadId;
+        flatstore.set("gamePadIndex", gamePadId);
+        flatstore.set("gamePad", gp);
+        this.setState({ gamepadIndex: gamePadId, gameLoopStarted: true });
+        this.gameLoop();
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener("gamepadconnected", this.onGamepadConnected);
+        if (this.start) {
+            cancelAnimationFrame(this.start);
+            this.start = 0;
+        }
+    }
+
+    onWheelRotationChange(e) {
+        let rotation = Number(e.target.value);
+        flatstore.set("maxrotation", rotation);
+        writeScopedStorage(this.state.controllerType, "rotation", rotation);
+        this.setState({ rotation });
+    }
+
+    openOverlay() {
+        writeScopedStorage(this.state.controllerType, "isOverlayActive", true);
+        this.setState({ isOverlayActive: true });
+    }
+
+    closeOverlay() {
+        writeScopedStorage(this.state.controllerType, "isOverlayActive", false);
+        this.setState({ isOverlayActive: false });
+    }
+
+    onControllerStageClick() {
+        if (this.state.isOverlayActive) {
+            this.closeOverlay();
+            return;
+        }
+
+        this.openOverlay();
+    }
+
+    renderControllerView() {
+        switch (this.state.controllerType) {
+            case "pedal":
+                return (
+                    <div
+                        className="single-controller-wrap single-controller-pedals"
+                        onClick={() => {
+                            this.onControllerStageClick();
+                        }}
+                    >
+                        <Pedals />
+                    </div>
+                );
+            case "shifter":
+                return (
+                    <div
+                        className="single-controller-wrap single-controller-shifter"
+                        onClick={() => {
+                            this.onControllerStageClick();
+                        }}
+                    >
+                        <ShifterBase />
+                    </div>
+                );
+            case "wheel":
+            default:
+                return (
+                    <div
+                        className="single-controller-wrap single-controller-wheel"
+                        onClick={() => {
+                            this.onControllerStageClick();
+                        }}
+                    >
+                        <Wheel rotation={this.state.rotation} />
+                    </div>
+                );
+        }
+    }
+
+    renderOverlayView() {
+        return <div className="overlay-stage">{this.renderControllerView()}</div>;
+    }
+
+    renderControllerSwitcher() {
+        return (
             <div className="controller-btn-group">
-              {['wheel', 'pedals', 'shifter'].map((ctrl) => (
-                <button
-                  key={ctrl}
-                  className={`controller-btn${this.state.selectedController === ctrl ? ' controller-btn--active' : ''}`}
-                  onClick={() => {
-                    localStorage.setItem('appState_selectedController', ctrl);
-                    this.setState({ selectedController: ctrl });
-                  }}
+                <a
+                    className={`controller-btn${this.state.controllerType === "wheel" ? " controller-btn--active" : ""}`}
+                    href={getControllerPath("wheel")}
                 >
-                  {ctrl.charAt(0).toUpperCase() + ctrl.slice(1)}
-                </button>
-              ))}
+                    Wheel
+                </a>
+                <a
+                    className={`controller-btn${this.state.controllerType === "pedal" ? " controller-btn--active" : ""}`}
+                    href={getControllerPath("pedal")}
+                >
+                    Pedal
+                </a>
+                <a
+                    className={`controller-btn${this.state.controllerType === "shifter" ? " controller-btn--active" : ""}`}
+                    href={getControllerPath("shifter")}
+                >
+                    Shifter
+                </a>
             </div>
-          </div>
-
-          <GamepadSelection onChange={(e) => { this.onChange(e); }} />
-
-          <div className="configure-row">
-            <label className="configure-label">Max Rotation</label>
-            <input
-              name="wheelRotation"
-              type="number"
-              value={this.state.rotation}
-              onChange={(e) => {
-                this.onWheelRotationChange(e);
-              }}
-            />
-          </div>
-
-          <div className="configure-row">
-            <label className="configure-label">Show Wheel Button Presses</label>
-            <select
-              name="wheelButtonsEnabled"
-              type="number"
-              value={this.state.wheelButtonsEnabled}
-              onChange={(e) => {
-                let wheelButtonsEnabled = Number.parseInt(e.target.value, 10);
-                flatstore.set('wheelButtonsEnabled', wheelButtonsEnabled);
-                localStorage.setItem('appState_wheelButtonsEnabled', wheelButtonsEnabled);
-                this.setState({ wheelButtonsEnabled });
-              }}
-            >
-              <option value="0">No</option>
-              <option value="1">Yes</option>
-            </select>
-          </div>
-
-          <div className="configure-preview">{this.renderSelectedController()}</div>
-
-          <div className="configure-advanced">
-            <RebindInputs />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  render() {
-    if (this.state.isOverlayActive) {
-      return this.renderOverlayView();
+        );
     }
 
-    return this.renderConfigureView();
-  }
+    renderConfigureView() {
+        const isWheelPage = this.state.controllerType === "wheel";
 
-  gameLoop() {
-    if (this.gamePadIndex === -1) {
-      return;
+        return (
+            <div className="configure-page">
+                <div className="configure-panel">
+                    <h1 className="configure-title">Stream Racing Wheel</h1>
+                    <p className="configure-copy">
+                        This page configures only the {this.state.controllerType} overlay. Click the preview to toggle
+                        overlay mode.
+                    </p>
+
+                    <div className="configure-row">
+                        <label className="configure-label">Controller Page</label>
+                        {this.renderControllerSwitcher()}
+                    </div>
+
+                    <GamepadSelection onChange={(e) => { this.onChange(e); }} />
+
+                    {isWheelPage && (
+                        <>
+                            <div className="configure-row">
+                                <label className="configure-label">Max Rotation</label>
+                                <input
+                                    name="wheelRotation"
+                                    type="number"
+                                    value={this.state.rotation}
+                                    onChange={(e) => {
+                                        this.onWheelRotationChange(e);
+                                    }}
+                                />
+                            </div>
+
+                            <div className="configure-row">
+                                <label className="configure-label">Show Wheel Button Presses</label>
+                                <select
+                                    name="wheelButtonsEnabled"
+                                    type="number"
+                                    value={this.state.wheelButtonsEnabled}
+                                    onChange={(e) => {
+                                        let wheelButtonsEnabled = Number.parseInt(e.target.value, 10);
+                                        flatstore.set("wheelButtonsEnabled", wheelButtonsEnabled);
+                                        writeScopedStorage(
+                                            this.state.controllerType,
+                                            "wheelButtonsEnabled",
+                                            wheelButtonsEnabled
+                                        );
+                                        this.setState({ wheelButtonsEnabled });
+                                    }}
+                                >
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="configure-preview">{this.renderControllerView()}</div>
+
+                    <div className="configure-advanced">
+                        <RebindInputs controllerType={this.state.controllerType} />
+                    </div>
+                </div>
+            </div>
+        );
     }
 
-    const gp = navigator.getGamepads()[this.gamePadIndex];
-    if (!gp) {
-      this.start = requestAnimationFrame(this.gameLoop);
-      return;
+    render() {
+        if (this.state.isOverlayActive) {
+            return this.renderOverlayView();
+        }
+
+        return this.renderConfigureView();
     }
 
-    let actionStates = [];
-    let index = 0;
-    for (let i = 0; i < gp.axes.length; i++) {
-      const axis = gp.axes[i];
-      const axisState = {
-        type: 'Axis',
-        id: i,
-        index: index++,
-        pressed: Math.abs(axis) > 0.05,
-        touched: Math.abs(axis) > 0.05,
-        value: axis
-      };
-      actionStates.push(axisState);
+    gameLoop() {
+        if (this.gamePadIndex === -1) {
+            return;
+        }
+
+        const gp = navigator.getGamepads()[this.gamePadIndex];
+        if (!gp) {
+            this.start = requestAnimationFrame(this.gameLoop);
+            return;
+        }
+
+        let actionStates = [];
+        let index = 0;
+        for (let i = 0; i < gp.axes.length; i++) {
+            const axis = gp.axes[i];
+            const axisState = {
+                type: "Axis",
+                id: i,
+                index: index++,
+                pressed: Math.abs(axis) > 0.05,
+                touched: Math.abs(axis) > 0.05,
+                value: axis,
+            };
+            actionStates.push(axisState);
+        }
+
+        for (let i = 0; i < gp.buttons.length; i++) {
+            const button = gp.buttons[i];
+            const buttonState = {
+                type: "Button",
+                id: i,
+                index: index++,
+                pressed: button.pressed,
+                touched: button.touched,
+                value: button.value,
+            };
+            actionStates.push(buttonState);
+        }
+
+        let btnWheel = flatstore.get("btnWheel");
+        let btnGas = flatstore.get("btnGas");
+        let btnBrake = flatstore.get("btnBrake");
+        let btnClutch = flatstore.get("btnClutch");
+
+        let btnGearReverse = flatstore.get("btnGearReverse");
+        let btnGear1 = flatstore.get("btnGear1");
+        let btnGear2 = flatstore.get("btnGear2");
+        let btnGear3 = flatstore.get("btnGear3");
+        let btnGear4 = flatstore.get("btnGear4");
+        let btnGear5 = flatstore.get("btnGear5");
+        let btnGear6 = flatstore.get("btnGear6");
+        let btnGear7 = flatstore.get("btnGear7");
+
+        let btnWheel_DUp = flatstore.get("btnWheel_DUp");
+        let btnWheel_DDown = flatstore.get("btnWheel_DDown");
+        let btnWheel_DLeft = flatstore.get("btnWheel_DLeft");
+        let btnWheel_DRight = flatstore.get("btnWheel_DRight");
+        let btnWheel_Back = flatstore.get("btnWheel_Back");
+        let btnWheel_Start = flatstore.get("btnWheel_Start");
+        let btnWheel_X = flatstore.get("btnWheel_X");
+        let btnWheel_Y = flatstore.get("btnWheel_Y");
+        let btnWheel_A = flatstore.get("btnWheel_A");
+        let btnWheel_B = flatstore.get("btnWheel_B");
+        let btnWheel_RSB = flatstore.get("btnWheel_RSB");
+        let btnWheel_LSB = flatstore.get("btnWheel_LSB");
+        let btnWheel_LB = flatstore.get("btnWheel_LB");
+        let btnWheel_RB = flatstore.get("btnWheel_RB");
+        let btnWheel_L3 = flatstore.get("btnWheel_L3");
+        let btnWheel_R3 = flatstore.get("btnWheel_R3");
+        let btnWheel_L4 = flatstore.get("btnWheel_L4");
+        let btnWheel_R4 = flatstore.get("btnWheel_R4");
+
+        if (btnWheel != null) flatstore.set("valueWheel", actionStates[btnWheel]);
+        if (btnGas != null) flatstore.set("valueGas", actionStates[btnGas]);
+        if (btnBrake != null) flatstore.set("valueBrake", actionStates[btnBrake]);
+        if (btnClutch != null) flatstore.set("valueClutch", actionStates[btnClutch]);
+
+        if (btnGearReverse != null) flatstore.set("valueGearReverse", actionStates[btnGearReverse]);
+        if (btnGear1 != null) flatstore.set("valueGear1", actionStates[btnGear1]);
+        if (btnGear2 != null) flatstore.set("valueGear2", actionStates[btnGear2]);
+        if (btnGear3 != null) flatstore.set("valueGear3", actionStates[btnGear3]);
+        if (btnGear4 != null) flatstore.set("valueGear4", actionStates[btnGear4]);
+        if (btnGear5 != null) flatstore.set("valueGear5", actionStates[btnGear5]);
+        if (btnGear6 != null) flatstore.set("valueGear6", actionStates[btnGear6]);
+        if (btnGear7 != null) flatstore.set("valueGear7", actionStates[btnGear7]);
+
+        if (btnWheel_DUp != null) flatstore.set("valueWheel_DUp", actionStates[btnWheel_DUp]);
+        if (btnWheel_DDown != null) flatstore.set("valueWheel_DDown", actionStates[btnWheel_DDown]);
+        if (btnWheel_DLeft != null) flatstore.set("valueWheel_DLeft", actionStates[btnWheel_DLeft]);
+        if (btnWheel_DRight != null) flatstore.set("valueWheel_DRight", actionStates[btnWheel_DRight]);
+        if (btnWheel_Back != null) flatstore.set("valueWheel_Back", actionStates[btnWheel_Back]);
+        if (btnWheel_Start != null) flatstore.set("valueWheel_Start", actionStates[btnWheel_Start]);
+        if (btnWheel_X != null) flatstore.set("valueWheel_X", actionStates[btnWheel_X]);
+        if (btnWheel_Y != null) flatstore.set("valueWheel_Y", actionStates[btnWheel_Y]);
+        if (btnWheel_A != null) flatstore.set("valueWheel_A", actionStates[btnWheel_A]);
+        if (btnWheel_B != null) flatstore.set("valueWheel_B", actionStates[btnWheel_B]);
+        if (btnWheel_RSB != null) flatstore.set("valueWheel_RSB", actionStates[btnWheel_RSB]);
+        if (btnWheel_LSB != null) flatstore.set("valueWheel_LSB", actionStates[btnWheel_LSB]);
+        if (btnWheel_LB != null) flatstore.set("valueWheel_LB", actionStates[btnWheel_LB]);
+        if (btnWheel_RB != null) flatstore.set("valueWheel_RB", actionStates[btnWheel_RB]);
+        if (btnWheel_L3 != null) flatstore.set("valueWheel_L3", actionStates[btnWheel_L3]);
+        if (btnWheel_R3 != null) flatstore.set("valueWheel_R3", actionStates[btnWheel_R3]);
+        if (btnWheel_L4 != null) flatstore.set("valueWheel_L4", actionStates[btnWheel_L4]);
+        if (btnWheel_R4 != null) flatstore.set("valueWheel_R4", actionStates[btnWheel_R4]);
+
+        flatstore.set("actionStates", actionStates);
+
+        this.start = requestAnimationFrame(this.gameLoop);
     }
-
-    for (let i = 0; i < gp.buttons.length; i++) {
-      const button = gp.buttons[i];
-      const buttonState = {
-        type: 'Button',
-        id: i,
-        index: index++,
-        pressed: button.pressed,
-        touched: button.touched,
-        value: button.value
-      };
-      actionStates.push(buttonState);
-    }
-
-    let btnWheel = flatstore.get('btnWheel');
-    let btnGas = flatstore.get('btnGas');
-    let btnBrake = flatstore.get('btnBrake');
-    let btnClutch = flatstore.get('btnClutch');
-
-    let btnGearReverse = flatstore.get('btnGearReverse');
-    let btnGear1 = flatstore.get('btnGear1');
-    let btnGear2 = flatstore.get('btnGear2');
-    let btnGear3 = flatstore.get('btnGear3');
-    let btnGear4 = flatstore.get('btnGear4');
-    let btnGear5 = flatstore.get('btnGear5');
-    let btnGear6 = flatstore.get('btnGear6');
-    let btnGear7 = flatstore.get('btnGear7');
-
-    let btnWheel_DUp = flatstore.get('btnWheel_DUp');
-    let btnWheel_DDown = flatstore.get('btnWheel_DDown');
-    let btnWheel_DLeft = flatstore.get('btnWheel_DLeft');
-    let btnWheel_DRight = flatstore.get('btnWheel_DRight');
-    let btnWheel_Back = flatstore.get('btnWheel_Back');
-    let btnWheel_Start = flatstore.get('btnWheel_Start');
-    let btnWheel_X = flatstore.get('btnWheel_X');
-    let btnWheel_Y = flatstore.get('btnWheel_Y');
-    let btnWheel_A = flatstore.get('btnWheel_A');
-    let btnWheel_B = flatstore.get('btnWheel_B');
-    let btnWheel_RSB = flatstore.get('btnWheel_RSB');
-    let btnWheel_LSB = flatstore.get('btnWheel_LSB');
-    let btnWheel_LB = flatstore.get('btnWheel_LB');
-    let btnWheel_RB = flatstore.get('btnWheel_RB');
-    let btnWheel_L3 = flatstore.get('btnWheel_L3');
-    let btnWheel_R3 = flatstore.get('btnWheel_R3');
-    let btnWheel_L4 = flatstore.get('btnWheel_L4');
-    let btnWheel_R4 = flatstore.get('btnWheel_R4');
-
-    if (btnWheel != null) flatstore.set('valueWheel', actionStates[btnWheel]);
-    if (btnGas != null) flatstore.set('valueGas', actionStates[btnGas]);
-    if (btnBrake != null) flatstore.set('valueBrake', actionStates[btnBrake]);
-    if (btnClutch != null) flatstore.set('valueClutch', actionStates[btnClutch]);
-
-    if (btnGearReverse != null) flatstore.set('valueGearReverse', actionStates[btnGearReverse]);
-    if (btnGear1 != null) flatstore.set('valueGear1', actionStates[btnGear1]);
-    if (btnGear2 != null) flatstore.set('valueGear2', actionStates[btnGear2]);
-    if (btnGear3 != null) flatstore.set('valueGear3', actionStates[btnGear3]);
-    if (btnGear4 != null) flatstore.set('valueGear4', actionStates[btnGear4]);
-    if (btnGear5 != null) flatstore.set('valueGear5', actionStates[btnGear5]);
-    if (btnGear6 != null) flatstore.set('valueGear6', actionStates[btnGear6]);
-    if (btnGear7 != null) flatstore.set('valueGear7', actionStates[btnGear7]);
-
-    if (btnWheel_DUp != null) flatstore.set('valueWheel_DUp', actionStates[btnWheel_DUp]);
-    if (btnWheel_DDown != null) flatstore.set('valueWheel_DDown', actionStates[btnWheel_DDown]);
-    if (btnWheel_DLeft != null) flatstore.set('valueWheel_DLeft', actionStates[btnWheel_DLeft]);
-    if (btnWheel_DRight != null) flatstore.set('valueWheel_DRight', actionStates[btnWheel_DRight]);
-    if (btnWheel_Back != null) flatstore.set('valueWheel_Back', actionStates[btnWheel_Back]);
-    if (btnWheel_Start != null) flatstore.set('valueWheel_Start', actionStates[btnWheel_Start]);
-    if (btnWheel_X != null) flatstore.set('valueWheel_X', actionStates[btnWheel_X]);
-    if (btnWheel_Y != null) flatstore.set('valueWheel_Y', actionStates[btnWheel_Y]);
-    if (btnWheel_A != null) flatstore.set('valueWheel_A', actionStates[btnWheel_A]);
-    if (btnWheel_B != null) flatstore.set('valueWheel_B', actionStates[btnWheel_B]);
-    if (btnWheel_RSB != null) flatstore.set('valueWheel_RSB', actionStates[btnWheel_RSB]);
-    if (btnWheel_LSB != null) flatstore.set('valueWheel_LSB', actionStates[btnWheel_LSB]);
-    if (btnWheel_LB != null) flatstore.set('valueWheel_LB', actionStates[btnWheel_LB]);
-    if (btnWheel_RB != null) flatstore.set('valueWheel_RB', actionStates[btnWheel_RB]);
-    if (btnWheel_L3 != null) flatstore.set('valueWheel_L3', actionStates[btnWheel_L3]);
-    if (btnWheel_R3 != null) flatstore.set('valueWheel_R3', actionStates[btnWheel_R3]);
-    if (btnWheel_L4 != null) flatstore.set('valueWheel_L4', actionStates[btnWheel_L4]);
-    if (btnWheel_R4 != null) flatstore.set('valueWheel_R4', actionStates[btnWheel_R4]);
-
-    flatstore.set('actionStates', actionStates);
-
-    this.start = requestAnimationFrame(this.gameLoop);
-  }
 }
 
 function GamepadSelection(props) {
-  const [gamePadIndex] = flatstore.useWatch('gamePadIndex');
-  const gamePads = navigator.getGamepads();
+    const [gamePadIndex] = flatstore.useWatch("gamePadIndex");
+    const gamePads = navigator.getGamepads();
 
-  const options = Object.values(gamePads).map((gp) => {
-    if (!gp) {
-      return null;
-    }
+    const options = Object.values(gamePads).map((gp) => {
+        if (!gp) {
+            return null;
+        }
+
+        return (
+            <option key={"optionsGamepad" + gp.id + gp.index} value={gp.index}>
+                {gp.id}
+            </option>
+        );
+    });
 
     return (
-      <option key={'optionsGamepad' + gp.id + gp.index} value={gp.index}>
-        {gp.id}
-      </option>
+        <div className="configure-row">
+            <label className="configure-label">Controller Gamepad</label>
+            <select name="gamepadSelection" value={gamePadIndex ?? ""} onChange={props.onChange}>
+                {options}
+            </select>
+        </div>
     );
-  });
-
-  return (
-    <div className="configure-row">
-      <label className="configure-label">Controller Gamepad</label>
-      <select name="gamepadSelection" value={gamePadIndex ?? ''} onChange={props.onChange}>
-        {options}
-      </select>
-    </div>
-  );
 }
 
 export default App;
